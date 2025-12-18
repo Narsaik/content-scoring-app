@@ -46,11 +46,11 @@ export default function HomePage() {
         body: JSON.stringify({ name: sessionName }),
       })
 
-      if (!sessionResponse.ok) {
-        throw new Error('Failed to create session')
-      }
-
       const sessionData = await sessionResponse.json()
+
+      if (!sessionResponse.ok) {
+        throw new Error(sessionData?.error || 'Failed to create session')
+      }
       const sessionId = sessionData.session.id
       const directorKey = sessionData.director_key
 
@@ -99,7 +99,10 @@ export default function HomePage() {
       console.error('Error creating session:', error)
       toast({
         title: 'Error',
-        description: 'Failed to create session. Please try again.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create session. Please check configuration and try again.',
         variant: 'destructive',
       })
     } finally {

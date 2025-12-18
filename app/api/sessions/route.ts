@@ -7,6 +7,13 @@ function generateKey(): string {
   return randomBytes(32).toString('base64url')
 }
 
+function isSupabaseConfigured() {
+  return (
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -19,8 +26,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json(
+        {
+          error:
+            'Supabase is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.',
+        },
+        { status: 500 }
+      )
+    }
+
     const supabase = await createClient()
-    
+
     const director_key = generateKey()
     const voter_key = generateKey()
 
@@ -38,7 +55,11 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating session:', error)
       return NextResponse.json(
-        { error: 'Failed to create session' },
+        {
+          error:
+            'Failed to create session. Ensure the sessions table exists in Supabase and RLS policies allow inserts.',
+          details: error.message || error,
+        },
         { status: 500 }
       )
     }
@@ -51,7 +72,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in POST /api/sessions:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error while creating session' },
       { status: 500 }
     )
   }

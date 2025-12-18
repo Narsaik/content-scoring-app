@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ContentDisplay } from './ContentDisplay'
 import { ResultsDisplay } from './ResultsDisplay'
 import { EditorScores } from './EditorScores'
 import type { ContentItem, Session, EditorScore } from '@/lib/types'
+import { CREATORS } from '@/lib/creators'
 import { Copy, Check } from 'lucide-react'
 
 interface DirectorPanelProps {
@@ -59,6 +61,21 @@ export function DirectorPanel({ session, directorKey }: DirectorPanelProps) {
       setContentItems(data.items || [])
     } catch (error) {
       console.error('Error loading content items:', error)
+    }
+  }
+
+  const handleCreatorChange = async (creator: string) => {
+    if (!currentContent) return
+
+    try {
+      await fetch(`/api/content/${currentContent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creator_name: creator }),
+      })
+      await loadContentItems()
+    } catch (error) {
+      console.error('Error updating creator:', error)
     }
   }
 
@@ -160,7 +177,27 @@ export function DirectorPanel({ session, directorKey }: DirectorPanelProps) {
 
       {currentContent && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ContentDisplay content={currentContent} />
+          <div className="space-y-4">
+            <ContentDisplay content={currentContent} />
+            <div className="space-y-2">
+              <Label>Assign creator (internal only)</Label>
+              <Select
+                value={currentContent.creator_name}
+                onValueChange={handleCreatorChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select creator" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CREATORS.map((creator) => (
+                    <SelectItem key={creator} value={creator}>
+                      {creator}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="space-y-4">
             <ResultsDisplay
               averageScore={currentContent.average_score}
